@@ -5,9 +5,7 @@ import java.net.*;
 import java.io.*;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 
 public class PeerProcess {
@@ -213,6 +211,12 @@ public class PeerProcess {
     private int arraySize;
     private Client client;
     private Server server;
+    //for the choking mechanism
+    private int numOfConnections;
+    private int unchoked[];//0 is choked, 1 is unchoked, 2 is not connected
+    private int rate[];
+    private int optIndex;
+
     public PeerProcess(int peerID,int portID,int hasFile,int numPrefNeighbors,int unchokeInt, int optimisticUnchokeInt, int fileSize, int pieceSize, int arraySize, String fileName, String Info[]) throws FileNotFoundException{
         this.peerID=peerID;
         this.number=peerID%1000;
@@ -231,6 +235,13 @@ public class PeerProcess {
         //this.pieces;
         pieces = new byte[arraySize][];
         //here you need to load the file in
+
+        //here to initialize the choking stuff
+        this.numOfConnections=number;
+        this.unchoked=new int[numOfConnections];
+        for(int i = 0;i<unchoked.length;++i){unchoked[i]=2;}
+        this.rate=new int[numOfConnections];
+        for(int i = 0;i<rate.length;++i){rate[i]=-1;}
     }
     void run()
     {
@@ -239,16 +250,54 @@ public class PeerProcess {
             server.start();
             client = new Client(this);
             client.start();
+            Timer t = new Timer();
+            Timer v = new Timer();
+
             while(!AllDone){
+
+
+                t.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        unchoke();
+                    }
+                }, 0, 5000);
+                v.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        OptimisticUnchoke();
+                    }
+                }, 0, 15000);
                 //figure out unchoke
-                //figure out 
+                //figure out opt choke
             }
         }
         catch (Exception e) {
             System.err.println("IDK what happened");
         }
     }
+    void unchoke(){
+        int temp;
+        for(int i = 0;i<unchoked.length;++i){unchoked[i]=0;}
+        for(int i = 0; i<numPrefNeighbors;++i){
+            temp = 0;
+            for(int j = 0;j<numOfConnections;j++){
+                if(rate[temp]>=0 && rate[j]>=0 && rate[j]>rate[temp])temp=j;
+            }
+            if(rate[temp]>=0)unchoked[temp]=1;
+        }
 
+    }
+
+    void OptimisticUnchoke(){
+        int temp;
+        do{
+            Random r = new Random();
+            temp = r.nextInt(numOfConnections);
+        }while(unchoked[temp]!=0);
+        unchoked[temp]=1;
+        System.out.println("peer" + peerID +"is unchoking peer "+(temp+1));
+    }
 
     public static void main(String args[]) throws Exception
     {

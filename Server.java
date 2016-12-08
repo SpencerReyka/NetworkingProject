@@ -170,8 +170,11 @@ public class Server implements Runnable{
         public void choke(){}
         public void unchoke(){}
         public void interested(InterestedMessage message){
-
-
+            //if this connection is blocked && it has been blocked
+                //send choked
+            //if this connection is not blocked but it was
+                //send unchoke
+            //else send have
 
         }
         public void notInterested(){}
@@ -187,7 +190,11 @@ public class Server implements Runnable{
                 ioException.printStackTrace();
             }
         }
-        public void request(RequestMessage message){}
+        public void request(RequestMessage message){
+            //if unchoked
+                //send piece message
+            //else send choked
+        }
         public void piece(){}
         //send a message to the output stream
         public void sendMessage(String msg)
